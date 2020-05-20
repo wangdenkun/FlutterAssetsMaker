@@ -1,0 +1,37 @@
+{
+  "name": "FlutterAssetsMaker",
+  "version": "1.0.0",
+  "description": "A minimal Electron application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "packager": "electron-packager ./ FlutterAssetsMaker --mac --out ./outputs --overwrite",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "repository": "https://github.com/electron/electron-quick-start",
+  "keywords": [
+    "Electron",
+    "quick",
+    "start",
+    "tutorial",
+    "demo"
+  ],
+  "author": "Twdk",
+  "license": "CC0-1.0",
+  "devDependencies": {
+    "electron": "^8.2.5",
+    "electron-packager": "^14.2.1",
+    "electron-builder": "^22.6.1"
+  },
+  "dependencies": {},
+  "build": {
+    "appId": "flutterassetsmaker.wangdenkun.com",
+    "mac": {
+      "category": "flutterassetsmaker.wangdenkun.com"
+    },
+    "productName": "FlutterAssetsMaker",
+    "copyright": "Copyright © 2020 ${author}"
+  }
+}
