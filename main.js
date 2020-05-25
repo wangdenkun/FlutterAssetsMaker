@@ -63,11 +63,12 @@ app.on('activate', function () {
 var sourcePath = '';
 var disPath = '';
 var newFileName = '';
+var targetType = '';
 
 // 监听渲染进程的消息
 ipcMain.on('synchronizationToMain', (event, pops, value) => {
   // 拿到操作了内容 设置目录 或者是开始制作
-  console.log('main', event, pops, value);
+  // console.log('main', event, pops, value);
 
   // 同步数据 然后相应的操作内容返给渲染进程
   if (pops === 'setSource') {
@@ -86,9 +87,29 @@ ipcMain.on('synchronizationToMain', (event, pops, value) => {
   // 相关的文件操作 
   // 创建2.0x 3.0x文件夹 
   if (pops === 'creatSubDir') {
-    var disPathsToCheck = [path.join(disPath, '2.0x'), path.join(disPath, '3.0x')];
-    disPathsToCheck.forEach((i) => fs.mkdirSync(i))
-    event.reply('messageFromMain', 'showMessage', '创建成功');
+    if( targetType == 'flutter'){
+      var disPathsToCheck = [path.join(disPath, '2.0x'), path.join(disPath, '3.0x')];
+      disPathsToCheck.forEach((i) => fs.mkdirSync(i))
+      event.reply('messageFromMain', 'showMessage', '创建成功');  
+    }
+    if( targetType == 'android'){
+      var disPathsToCheck = fs.readdirSync(sourcePath);
+      var disPathsToMake = disPathsToCheck.map((i) => path.join(disPath,i));
+      console.log('---------------')
+      console.log(disPathsToCheck)
+      console.log(disPathsToMake)
+      try{
+        disPathsToMake.forEach((i) => {
+          if(!fs.existsSync(i)){
+            fs.mkdirSync(i);
+          }
+        })
+        event.reply('messageFromMain', 'showMessage', '创建成功');    
+      }catch(e){
+        event.reply('messageFromMain', 'showMessage', e);    
+      }
+    }
+
   }
   // 删除目标文件
   if (pops === 'deleteExitsFiles') {
@@ -110,78 +131,244 @@ ipcMain.on('synchronizationToMain', (event, pops, value) => {
     event.reply('messageFromMain', 'showMessage', '删除成功');
   }
 
+  // 设置目标平台
+  if (pops === 'setTargetType') {
+    targetType = value;
+  }
   // 搬文件
-  if (pops === 'makeAssets') {
-    var message = '';
-    var isCheckRight = true;
-    // 检查源目录和目标目录
-    if (sourcePath === '' || disPath === '' || newFileName == '') {
-      isCheckRight = false;
-      message = '设置不完善！';
-    }
-    try {
-      var sourceDir = fs.readdirSync(sourcePath);
-    } catch (error) {
-      isCheckRight = false;
-      message = '源目录设置错误';
-    }
-    try {
-      var disDir = fs.readdirSync(disPath);
-    } catch (error) {
-      isCheckRight = false;
-      message = '目标目录设置错误';
-    }
-    if (!isCheckRight) {
-      event.reply('messageFromMain', 'showMessage', message);
+  if (pops === 'makeAssets' && targetType === 'flutter') {
+    // var message = '';
+    // var isCheckRight = true;
+    // // 检查源目录和目标目录
+    // if (sourcePath === '' || disPath === '' || newFileName == '') {
+    //   isCheckRight = false;
+    //   message = '设置不完善！';
+    // }
+    // try {
+    //   var sourceDir = fs.readdirSync(sourcePath);
+    // } catch (error) {
+    //   isCheckRight = false;
+    //   message = '源目录设置错误';
+    // }
+    // try {
+    //   var disDir = fs.readdirSync(disPath);
+    // } catch (error) {
+    //   isCheckRight = false;
+    //   message = '目标目录设置错误';
+    // }
+    // if (!isCheckRight) {
+    //   event.reply('messageFromMain', 'showMessage', message);
+    //   return;
+    // }
+
+    // // 检查目标文件夹内是否有2.x 3.x
+    // var disPathsToCheck = [path.join(disPath, '2.0x'), path.join(disPath, '3.0x')]
+    // if (disDir.indexOf('2.0x') == -1 || disDir.indexOf('3.0x') == -1) {
+    //   message = '目标目录内没有2.0x或3.0x目录';
+    //   isCheckRight = false;
+    //   event.reply('messageFromMain', 'creatSubDir', message);
+    //   return;
+    // }
+  }
+  if (pops === 'makeAssets'){
+    if (!commonMakeCheck(event)) {
       return;
     }
-
-    // 检查目标文件夹内是否有2.x 3.x
-    var disPathsToCheck = [path.join(disPath, '2.0x'), path.join(disPath, '3.0x')]
-    if (disDir.indexOf('2.0x') == -1 || disDir.indexOf('3.0x') == -1) {
-      message = '目标目录内没有2.0x或3.0x目录';
-      isCheckRight = false;
-      event.reply('messageFromMain', 'creatSubDir', message);
+    if (targetType == '') {
+      event.reply('messageFromMain', 'creatSubDir', '未设置类型!');
       return;
     }
-
-
-    // 开始搬文件
-    var orgName = sourceDir.filter((v) => v.indexOf('@2x') != -1).pop();
-    if (!orgName) {
-      event.reply('messageFromMain', 'showMessage', '未在源目录内找到指定符合规范的文件');
-      return;
+    if (targetType == 'flutter') {
+      makeAssetsOfFlutter(event);
     }
-
-    var orgNameTmp = orgName.replace('@2x', '');
-    var extname = path.extname(orgNameTmp);
-    orgNameTmp = orgNameTmp.replace(extname, '');
-
-    // 检查目标文件夹内是否已存在新文件
-    if (fs.existsSync(path.join(disPath, `${newFileName}${extname}`))) {
-      message = '目标目录内已存在该文件';
-      event.reply('messageFromMain', 'deleteExitsFiles', message);
-      return;
+    if (targetType == 'ios') {
+      makeAssetsOfiOS(event);
     }
-
-    var copyFromPaths = [
-      path.join(sourcePath, `${orgNameTmp}${extname}`),
-      path.join(sourcePath, `${orgNameTmp}@2x${extname}`),
-      path.join(sourcePath, `${orgNameTmp}@3x${extname}`),
-    ]
-    var copyToPaths = [
-      path.join(disPath, `${newFileName}${extname}`),
-      path.join(disPath, '2.0x', `${newFileName}${extname}`),
-      path.join(disPath, '3.0x', `${newFileName}${extname}`),
-    ]
-
-    event.reply('messageFromMain', 'workStart', 0);
-    for (const index in copyFromPaths) {
-      const src = copyFromPaths[index];
-      const dest = copyToPaths[index];
-      fs.copyFileSync(src, dest);
-      event.reply('messageFromMain', 'progress', index / copyFromPaths.length);
-    }
-    event.reply('messageFromMain', 'workEnd', 0);
+    if (targetType == 'android') {
+      console.log('--------targetType == android')
+      makeAssetsOfAndroid(event);
+    }  
   }
 })
+
+function commonMakeCheck(event) {
+  var message = '';
+  var isCheckRight = true;
+  // 检查源目录和目标目录
+  if (sourcePath === '' || disPath === '' || newFileName == '') {
+    isCheckRight = false;
+    message = '设置不完善！'; 
+  }
+  try {
+    var sourceDir = fs.readdirSync(sourcePath);
+  } catch (error) {
+    isCheckRight = false;
+    message = '源目录设置错误';
+  }
+  try {
+    var disDir = fs.readdirSync(disPath);
+  } catch (error) {
+    isCheckRight = false;
+    message = '目标目录设置错误';
+  }
+  if (!isCheckRight) {
+    event.reply('messageFromMain', 'showMessage', message);
+    return false;
+  }
+  return true;
+
+}
+function makeAssetsOfFlutter(event) {
+  var message = '';
+  var sourceDir = fs.readdirSync(sourcePath);
+  var disDir = fs.readdirSync(disPath);
+  // 检查目标文件夹内是否有2.x 3.x
+  var disPathsToCheck = [path.join(disPath, '2.0x'), path.join(disPath, '3.0x')]
+  if (disDir.indexOf('2.0x') == -1 || disDir.indexOf('3.0x') == -1) {
+    message = '目标目录内没有2.0x或3.0x目录';
+    isCheckRight = false;
+    event.reply('messageFromMain', 'creatSubDir', message);
+    return false;
+  }
+  // 检查目标文件夹内是否有2.x 3.x
+  var disPathsToCheck = [path.join(disPath, '2.0x'), path.join(disPath, '3.0x')]
+  if (disDir.indexOf('2.0x') == -1 || disDir.indexOf('3.0x') == -1) {
+    message = '目标目录内没有2.0x或3.0x目录';
+    isCheckRight = false;
+    event.reply('messageFromMain', 'creatSubDir', message);
+    return false;
+  }
+  // 开始搬文件
+  var orgName = sourceDir.filter((v) => v.indexOf('@2x') != -1).pop();
+  if (!orgName) {
+    event.reply('messageFromMain', 'showMessage', '未在源目录内找到指定符合规范的文件');
+    return;
+  }
+
+  var orgNameTmp = orgName.replace('@2x', '');
+  var extname = path.extname(orgNameTmp);
+  orgNameTmp = orgNameTmp.replace(extname, '');
+
+  // 检查目标文件夹内是否已存在新文件
+  if (fs.existsSync(path.join(disPath, `${newFileName}${extname}`))) {
+    message = '目标目录内已存在该文件';
+    event.reply('messageFromMain', 'deleteExitsFiles', message);
+    return;
+  }
+
+  var copyFromPaths = [
+    path.join(sourcePath, `${orgNameTmp}${extname}`),
+    path.join(sourcePath, `${orgNameTmp}@2x${extname}`),
+    path.join(sourcePath, `${orgNameTmp}@3x${extname}`),
+  ]
+  var copyToPaths = [
+    path.join(disPath, `${newFileName}${extname}`),
+    path.join(disPath, '2.0x', `${newFileName}${extname}`),
+    path.join(disPath, '3.0x', `${newFileName}${extname}`),
+  ]
+
+  event.reply('messageFromMain', 'workStart', 0);
+  for (const index in copyFromPaths) {
+    const src = copyFromPaths[index];
+    const dest = copyToPaths[index];
+    fs.copyFileSync(src, dest);
+    event.reply('messageFromMain', 'progress', index / copyFromPaths.length);
+  }
+  event.reply('messageFromMain', 'workEnd', 0);
+}
+
+function makeAssetsOfAndroid(event) {
+  var message = '';
+  var sourceDir = fs.readdirSync(sourcePath);
+  var disDir = fs.readdirSync(disPath);
+  // 开始搬文件
+  var orgName = sourceDir.filter((v) => v.indexOf('mipmap-') != -1).pop();
+  if (!orgName) {
+    event.reply('messageFromMain', 'showMessage', '未在源目录内找到指定符合规范的文件');
+    return;
+  }
+
+  var orgNameTmp = orgName.replace('@2x', '');
+  var extname = path.extname(orgNameTmp);
+  orgNameTmp = orgNameTmp.replace(extname, '');
+
+  var orgFilePaths = sourceDir.map((i) => [fs.readdirSync(path.join(sourcePath,i))]).reduce((l, r) => l.concat(r));
+  
+  // console.log(disDir);
+  // console.log(sourceDir);
+  // console.log(orgFilePaths);
+  var totalCount = orgFilePaths.length;
+  var currentMoveIndex = 1;
+  var isDisDirHasSourceDirs = sourceDir.every((i) => disDir.indexOf(i) != -1);
+  if(!isDisDirHasSourceDirs){
+    message = '目标目录内没有对应的分辨率文件夹';
+    event.reply('messageFromMain', 'creatSubDir', message);
+    return false;
+  }
+
+  try{
+    event.reply('messageFromMain', 'workStart', 0);
+    console.log('start make')
+    sourceDir.forEach((sourceSubDir) => {
+      fs.stat(path.join(sourcePath,sourceSubDir),(err,state) => {
+        if(err == null && state.isDirectory()){
+          subFiles = fs.readdirSync(path.join(sourcePath,sourceSubDir));
+          subFiles.forEach((i) => {
+            var extname = path.extname(i);
+            fs.copyFileSync(path.join(sourcePath,sourceSubDir,i),path.join(disPath,sourceSubDir,`${newFileName}${extname}`));
+            event.reply('messageFromMain', 'progress', currentMoveIndex / totalCount);
+            currentMoveIndex += 1;  
+            if(currentMoveIndex >= totalCount){
+              event.reply('messageFromMain', 'workEnd', 0);
+            }
+          });
+        }
+      });
+    });  
+  }catch(e){
+    event.reply('messageFromMain', 'showMessage', e);
+  }
+}
+
+function makeAssetsOfiOS(event) {
+  var message = '';
+  var sourceDir = fs.readdirSync(sourcePath);
+  var disDir = fs.readdirSync(disPath);
+  // 开始搬文件
+  var orgName = sourceDir.filter((v) => v.indexOf('@2x') != -1).pop();
+  if (!orgName) {
+    event.reply('messageFromMain', 'showMessage', '未在源目录内找到指定符合规范的文件');
+    return;
+  }
+
+  var orgNameTmp = orgName.replace('@2x', '');
+  var extname = path.extname(orgNameTmp);
+  orgNameTmp = orgNameTmp.replace(extname, '');
+
+  // 检查目标文件夹内是否已存在新文件
+  if (fs.existsSync(path.join(disPath, `${newFileName}${extname}`))) {
+    message = '目标目录内已存在该文件';
+    event.reply('messageFromMain', 'deleteExitsFiles', message);
+    return;
+  }
+
+  var copyFromPaths = [
+    path.join(sourcePath, `${orgNameTmp}${extname}`),
+    path.join(sourcePath, `${orgNameTmp}@2x${extname}`),
+    path.join(sourcePath, `${orgNameTmp}@3x${extname}`),
+  ]
+  var copyToPaths = [
+    path.join(disPath, `${newFileName}${extname}`),
+    path.join(disPath, '2.0x', `${newFileName}${extname}`),
+    path.join(disPath, '3.0x', `${newFileName}${extname}`),
+  ]
+
+  event.reply('messageFromMain', 'workStart', 0);
+  for (const index in copyFromPaths) {
+    const src = copyFromPaths[index];
+    const dest = copyToPaths[index];
+    fs.copyFileSync(src, dest);
+    event.reply('messageFromMain', 'progress', index / copyFromPaths.length);
+  }
+  event.reply('messageFromMain', 'workEnd', 0);
+}

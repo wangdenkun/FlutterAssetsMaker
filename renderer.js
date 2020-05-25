@@ -20,12 +20,20 @@ function getKV(key) {
     var res = localSavedData[key];
     return res;
 }
+function clearTypeStyle(selectType){
+    $('#flutter-type').removeClass('layui-btn-normal');
+    $('#ios-type').removeClass('layui-btn-normal');
+    $('#android-type').removeClass('layui-btn-normal');
+    $(`#${selectType}`).addClass('layui-btn-normal')
+}
 
+// 页面加载完成后 读取一下上次的配置
 window.addEventListener('DOMContentLoaded', () => {
     // 读取上次保存的内容
     const lastSavedSourceFileDir = getKV('sourceFileDir');
     const lastSavedDisFileDir = getKV('disFileDir');
     const targetName = getKV('targetName');
+    const targetType = getKV('targetType');
     if (lastSavedSourceFileDir) {
         const pops = 'setSource';
         ipcRenderer.send('synchronizationToMain', pops, lastSavedSourceFileDir);
@@ -37,6 +45,13 @@ window.addEventListener('DOMContentLoaded', () => {
     if (targetName) {
         var pops = 'setTargetName';
         ipcRenderer.send('synchronizationToMain', pops, targetName);
+    }
+    if(targetType){
+        clearTypeStyle(`${targetType}-type`);
+        ipcRenderer.send('synchronizationToMain', 'setTargetType', targetType);
+    }else{
+        setKV('targetType','flutter');
+        ipcRenderer.send('synchronizationToMain', 'setTargetType', 'flutter');
     }
 
     // 拖动文件的操作
@@ -63,6 +78,23 @@ window.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
     });
 
+    // 目标类型
+    $('#flutter-type').on('click',(e) => {        
+        clearTypeStyle('flutter-type');
+        ipcRenderer.send('synchronizationToMain', 'setTargetType', 'flutter');
+        setKV('targetType','flutter');
+    })
+    $('#ios-type').on('click',(e) => {        
+        clearTypeStyle('ios-type');
+        ipcRenderer.send('synchronizationToMain', 'setTargetType', 'ios');
+        setKV('targetType','ios');
+    })
+    $('#android-type').on('click',(e) => {        
+        clearTypeStyle('android-type');
+        ipcRenderer.send('synchronizationToMain', 'setTargetType', 'android');
+        setKV('targetType','android');
+    })
+
     // 目标 文件名
     $('#targetName').bind("input propertychange", function (event) {
         const targetName = $("#targetName").val();
@@ -74,7 +106,7 @@ window.addEventListener('DOMContentLoaded', () => {
     progressbar = $('#progressbar');
     progressbar.css('display', 'none');
     $('#makeAssets').on('click', (e) => {
-        ipcRenderer.send('synchronizationToMain', 'makeAssets');
+        ipcRenderer.send('synchronizationToMain', 'makeAssets', 'ios/android/flutter');
     })
 })
 

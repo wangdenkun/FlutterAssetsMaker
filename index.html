@@ -16,28 +16,37 @@
 </head>
 
 <body>
-  <div  id="progressbar"  class="layui-progress layui-progress-big" lay-filter="progressbar" lay-showPercent="true">
+  <div id="progressbar" class="layui-progress layui-progress-big" lay-filter="progressbar" lay-showPercent="true">
     <div class="layui-progress-bar layui-bg-blue" lay-percent="0%"></div>
   </div>
   <div class="layui-container">
     <div class="layui-row">
       <div class="space-h"></div>
       <div class="layui-col btn-backcolor">
+        <label class="layui-form-label">导入类型:</label>
+        <button type="button" class="layui-btn maketype layui-btn-normal" id="flutter-type">Flutter</button>
+        <button type="button" class="layui-btn maketype" id="ios-type">iOS</button>
+        <button type="button" class="layui-btn maketype" id="android-type">Android</button>
+      </div>
+      <div class="space-h"></div>
+      <div class="layui-col btn-backcolor">
         <label class="layui-form-label">资源目录:</label>
         <div class="layui-input-block">
-          <button id="sourceFileDir" type="button" class="layui-btn layui-btn-fluid">切图文件目录(里边应该有xx.png xx@2x.png xx@3x.png) 可以把文件夹拖过来试试</button>
+          <button id="sourceFileDir" type="button" class="layui-btn layui-btn-fluid">切图文件目录(里边应该有xx.png xx@2x.png
+            xx@3x.png) 可以把文件夹拖过来试试</button>
         </div>
       </div>
       <div class="space-h"></div>
       <div class="layui-col btn-backcolor">
         <label class="layui-form-label">目标目录:</label>
         <div class="layui-input-block">
-          <button id="disFileDir" type="button" class="layui-btn layui-btn-fluid">目标目录(里边应该有2.0x 3.0x 文件夹) 可以把文件夹拖过来试试</button>
+          <button id="disFileDir" type="button" class="layui-btn layui-btn-fluid">目标目录(里边应该有2.0x 3.0x 文件夹)
+            可以把文件夹拖过来试试</button>
         </div>
       </div>
       <div class="space-h"></div>
       <div class="layui-col btn-backcolor">
-        <label class="layui-form-label">文件名</label>
+        <label class="layui-form-label">重命名为:</label>
         <div class="layui-input-block">
           <input id="targetName" name="targetName" placeholder="放在项目里的名称 不要有后缀" autocomplete="off" class="layui-input">
         </div>
